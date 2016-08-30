@@ -16,6 +16,10 @@ import (
 
 var conn net.Conn
 
+/*
+	新しい接続を開き、コネクトを更新する.
+  既に接続されているコネクトが閉じられていない場合は、close処理を行う.
+*/
 func dial(netw, addr string) (net.Conn, error) {
 	if conn != nil {
 		conn.Close()
@@ -33,6 +37,9 @@ func dial(netw, addr string) (net.Conn, error) {
 
 var reader io.ReadCloser
 
+/*
+	コネクトとReadCloserを閉じる.
+*/
 func closeConn() {
 	if conn != nil {
 		conn.Close()
