@@ -21,6 +21,12 @@ var conn net.Conn
 /*
 	新しい接続を開き、コネクションを更新後、コネクションを返却する.
   既に接続されているコネクションが閉じられていない場合は閉じる.
+	params:
+		netw:
+		addr:
+	returns:
+		net.Conn: 新しいコネクション
+		error: エラーインスタンス
 */
 func dial(netw, addr string) (net.Conn, error) {
 	if conn != nil {
@@ -87,6 +93,12 @@ var authSetupOnce sync.Once
 /*
 	認証情報を付与し、リクエストを送信する.
 	認証情報のセットアップは初回コール時のみ.
+	params:
+		req: リクエストインスタンス
+		params: 問い合わせ対象(投票での選択肢)
+	returns:
+		*http.Response: レスポンスインスタンス
+		error: エラーインスタンス
 */
 func makeRequest(req *http.Request, params url.Values) (*http.Response, error) {
 
@@ -114,9 +126,10 @@ type tweet struct {
 }
 
 /*
-	Twitter APIを使い、検索のリクエストを送信する.
+	Twitter APIを使い、Twitter検索(検索リクエストの送信)を行う.
 	検索結果のツイート内で、全ての選択肢(options)が言及されている場合、投票を行う.
-	votes: 送信専用(<-)のチャネル
+	params:
+		votes: 送信専用(<-)のチャネル
 */
 func readFromTwitter(votes chan<- string) {
 	options, err := loadOptions()
@@ -157,4 +170,45 @@ func readFromTwitter(votes chan<- string) {
 		}
 	}
 
+}
+
+/*
+	チャネルの受信を待機し、Twitter検索(readFromTwitter)を繰り返し行う.
+	params:
+		stopchan: 受信専用のシグナルのチャネル
+		votes: 投票内容が送信されるチャネル
+	returns:
+		<-chan struct{}: goroutineが実行中かどうかを判断するためのチャネル.
+*/
+func startTwitterStream(stopchan <-chan struct{}, votes chan<- string) <-chan struct{} {
+
+	// バッファのサイズを1にすることで、誰かが読み込むまで書き込みはできない.
+	stoppedchan := make(chan struct{}, 1)
+	go func() {
+		defer func() {
+			stoppedchan <- struct{}{}
+		}()
+		for {
+			// チャネルへのメッセージを待つ.
+			select {
+			case <-stopchan:
+				log.Println("Twitterへの問い合わせを終了します...")
+				return
+			default:
+				log.Println("Twitterへ問い合わせます...")
+				readFromTwitter(votes)
+				log.Println(" (待機中)")
+
+				// 待機してから接続する.
+				time.Sleep(10 * time.Second)
+			}
+		}
+	}()
+
+	/*
+		goroutineの完了を伝えるため返却する.
+		goroutineを呼び出すとすぐに制御が戻るため、チャネルを返却しないと
+		呼び出し元はgoroutineが実行中かどうか知ることができない.
+	*/
+	return stoppedchan
 }
