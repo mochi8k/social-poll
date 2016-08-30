@@ -125,16 +125,12 @@ func readFromTwitter(votes chan<- string) {
 		return
 	}
 
-	// Twitter側のエンドポイントを指すurl.URLオブジェクトを生成.
-	u, err := url.Parse("https://stream.twitter.com/1.1/statuses/filter.json")
-	if err != nil {
-		log.Println("URLの解析に失敗:", err)
-		return
-	}
+	// Twitterのエンドポイント
+	endPoint := "https://stream.twitter.com/1.1/statuses/filter.json"
 
 	query := make(url.Values)
 	query.Set("track", strings.Join(options, ","))
-	req, err := http.NewRequest("POST", u.String(), strings.NewReader(query.Encode()))
+	req, err := http.NewRequest("POST", endPoint, strings.NewReader(query.Encode()))
 	if err != nil {
 		log.Println("検索のリクエスト作成に失敗:", err)
 		return
