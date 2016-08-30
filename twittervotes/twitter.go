@@ -17,8 +17,8 @@ import (
 var conn net.Conn
 
 /*
-	新しい接続を開き、コネクトを更新する.
-  既に接続されているコネクトが閉じられていない場合は、close処理を行う.
+	新しい接続を開き、コネクションを更新する.
+  既に接続されているコネクションが閉じられていない場合は閉じる.
 */
 func dial(netw, addr string) (net.Conn, error) {
 	if conn != nil {
@@ -26,7 +26,7 @@ func dial(netw, addr string) (net.Conn, error) {
 		conn = nil
 	}
 
-	// タイムアウトを検知するコネクト.
+	// タイムアウトを検知するコネクション.
 	netc, err := net.DialTimeout(netw, addr, 5*time.Second)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func dial(netw, addr string) (net.Conn, error) {
 var reader io.ReadCloser
 
 /*
-	コネクトとReadCloserを閉じる.
+	コネクションとReadCloserを閉じる.
 */
 func closeConn() {
 	if conn != nil {
@@ -54,6 +54,10 @@ var (
 	authClient *oauth.Client
 )
 
+/*
+	環境変数から認証情報を読み込み、OAuthオブジェクトのセットアップを行う.
+	OAuthオブジェクトはリクエストの認証に使う.
+*/
 func setupTwitterAuth() {
 	var ts struct {
 		ConsumerKey    string `env:"SP_TWITTER_KEY,required"`
@@ -78,6 +82,10 @@ func setupTwitterAuth() {
 
 var authSetupOnce sync.Once
 
+/*
+	認証情報を付与し、リクエストを送信する.
+	認証情報のセットアップは初回コール時のみ.
+*/
 func makeRequest(req *http.Request, params url.Values) (*http.Response, error) {
 
 	var httpClient *http.Client
