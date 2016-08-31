@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 
+	nsq "github.com/bitly/go-nsq"
+
 	mgo "gopkg.in/mgo.v2"
 )
 
@@ -47,4 +49,35 @@ func loadOptions() ([]string, error) {
 	}
 	iter.Close()
 	return options, iter.Err()
+}
+
+/*
+	NSQへパブリッシュする.
+		params:
+			votes: 投票内容が送信されるチャネル(受信専用)
+		returns:
+			<-chan struct{}: goroutineが実行中かどうかを判断するためのチャネル.
+*/
+func publishVotes(votes <-chan string) <-chan struct{} {
+	stopchan := make(chan struct{}, 1)
+
+	pub, _ := nsq.NewProducer("localhost:4150", nsq.NewConfig())
+
+	go func() {
+
+		// votesチャネルを継続的にチェックする.
+		// チャネルが空の場合、値が何か差送信されるまで実行はブロックされる.
+		// チャネルが閉じられた場合、ループが終了する.
+		for vote := range votes {
+			// 投票内容をパブリッシュ
+			pub.Publish("votes", []byte(vote))
+			log.Println(vote)
+		}
+		log.Println("Publisher: 停止中です")
+		pub.Stop()
+		log.Println("Publisher: 停止しました")
+		stopchan <- struct{}{}
+	}()
+
+	return stopchan
 }
