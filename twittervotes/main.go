@@ -12,6 +12,8 @@ var db *mgo.Session
 
 /*
 	MongoDBインスタンスへの接続を行う.
+		returns:
+			error: エラーインスタンス
 */
 func dialdb() error {
 	log.Println("Dialling to MongoDB: localhost")
@@ -36,6 +38,9 @@ type poll struct {
 
 /*
 	投票を表すオブジェクトを読み込み、投票の選択肢をすべて取り出して返却する.
+		returns:
+			[]string: 投票の選択肢.
+			error: エラーインスタンス
 */
 func loadOptions() ([]string, error) {
 	var options []string
@@ -69,13 +74,16 @@ func publishVotes(votes <-chan string) <-chan struct{} {
 		// チャネルが空の場合、値が何か差送信されるまで実行はブロックされる.
 		// チャネルが閉じられた場合、ループが終了する.
 		for vote := range votes {
+
 			// 投票内容をパブリッシュ
 			pub.Publish("votes", []byte(vote))
 			log.Println(vote)
 		}
+
 		log.Println("Publisher: 停止中です")
 		pub.Stop()
 		log.Println("Publisher: 停止しました")
+
 		stopchan <- struct{}{}
 	}()
 

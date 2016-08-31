@@ -176,7 +176,7 @@ func readFromTwitter(votes chan<- string) {
 	チャネルの受信を待機し、Twitter検索(readFromTwitter)を繰り返し行う.
 	params:
 		stopchan: 受信専用のシグナルのチャネル
-		votes: 投票内容が送信されるチャネル
+		votes: 投票内容が送信されるチャネル(受信専用)
 	returns:
 		<-chan struct{}: goroutineが実行中かどうかを判断するためのチャネル.
 */
