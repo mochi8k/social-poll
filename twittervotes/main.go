@@ -118,4 +118,9 @@ func main() {
 
 	// 誰かがプログラムを終了させようとした時にsignalChanにシグナルを送信する.
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	if err := dialdb(); err != nil {
+		log.Fatalln("MongoDBへのダイヤルに失敗しました:", err)
+	}
+	defer closedb()
 }
