@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	nsq "github.com/bitly/go-nsq"
 
@@ -123,4 +124,29 @@ func main() {
 		log.Fatalln("MongoDBへのダイヤルに失敗しました:", err)
 	}
 	defer closedb()
+
+	// 投票結果のためのチャネル
+	votes := make(chan string)
+
+	publisherStoppedChan := publishVotes(votes)
+	twitterStoppedChan := startTwitterStream(stopChan, votes)
+
+	// 1分間の待機とcloseConnによる切断を繰り返す.
+	go func() {
+		for {
+			time.Sleep(1 * time.Minute)
+			closeConn()
+
+			// isStopへのアクセスの競合を回避.
+			stoplock.Lock()
+			if isStop {
+				stoplock.Unlock()
+				break
+			}
+			stoplock.Unlock()
+		}
+	}()
+	<-twitterStoppedChan
+	close(votes)
+	<-publisherStoppedChan
 }
