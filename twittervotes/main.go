@@ -62,7 +62,7 @@ func loadOptions() ([]string, error) {
 }
 
 /*
-	NSQへパブリッシュする.
+	NSQへ引数で指定した投票内容をパブリッシュする.
 		params:
 			votes: 投票内容が送信されるチャネル(受信専用)
 		returns:
